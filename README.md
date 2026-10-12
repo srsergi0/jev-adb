@@ -1,6 +1,6 @@
 # jev-adb — JEV-powered Android control over ADB
 
-![jev-adb cover: Android robot holding a phone, linked to a glowing brain-circuit node](docs/assets/cover.png)
+![jev-adb cover: Android robot holding a phone, linked to a glowing brain-circuit node](docs/assets/cover.jpg)
 
 **jev-adb** is a [Model Context Protocol](https://modelcontextprotocol.io) (MCP)
 server that lets AI agents **observe and control an Android phone over ADB**
