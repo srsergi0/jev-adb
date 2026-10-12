@@ -3,7 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import { dumpXml, listDevices, pickSerial, runAdb, screencap, shell } from './adb.ts';
 import { baseConfig, loadAuth, resolveJevKey, saveAuth } from './config.ts';
-import { choiceOf, evaluate } from './jev.ts';
+import { choiceOf, decide } from './decide.ts';
 import { byRef, parseDump, screenState } from './perception.ts';
 import { checkConsent, gate, redact } from './safety.ts';
 import { runTask } from './task.ts';
@@ -15,9 +15,9 @@ function needConsent(serial: string): void {
   checkConsent(serial, loadAuth().authorizedDevices);
 }
 
-function jevKey(): string {
+function deciderKey(): string {
   const k = resolveJevKey();
-  if (!k) throw new Error('No JEV API key. Set JEV_ADB_API_KEY/OPENROUTER_API_KEY or configure jev-browser first.');
+  if (!k) throw new Error('No decision API key. Set JEV_ADB_API_KEY/OPENROUTER_API_KEY or configure jev-browser first.');
   return k;
 }
 
@@ -130,16 +130,15 @@ export function createServer(): McpServer {
     async ({ query, serial, k }) => {
       const s = await pickSerial(serial, baseConfig().defaultDevice);
       needConsent(s);
-      const cfg = baseConfig();
       const screen = parseDump(s, await dumpXml(s));
       const criteria: Record<string, string | null> = {};
       for (const e of screen.elements.filter((x) => x.clickable).slice(0, 40)) {
         criteria[e.ref] = `${e.cls} "${(e.text || e.desc || e.resId.split('/').pop() || '').slice(0, 60)}"`;
       }
       criteria['none'] = 'not on this screen';
-      const r = await evaluate(screenState(screen), {
+      const r = await decide(screenState(screen), {
         find: { type: 'choice', instructions: `Find: ${query}`, criteria } as any,
-      }, { baseUrl: cfg.jevBaseUrl, model: cfg.jevModel, apiKey: jevKey() });
+      }, { apiKey: deciderKey() });
       const a = choiceOf(r.answers, 'find');
       const rows = Object.entries(a.probabilities).sort((x, y) => y[1] - x[1]).slice(0, k).map(([ref, p]) => `  ${ref} p=${p.toFixed(2)}`);
       return text(`best ${a.choice} confidence ${a.confidence.toFixed(2)} ($${r.usage.costUsd.toFixed(5)})\n${rows.join('\n')}`);
@@ -159,7 +158,6 @@ export function createServer(): McpServer {
     async ({ action, ref, intent, value, serial }) => {
       const s = await pickSerial(serial, baseConfig().defaultDevice);
       needConsent(s);
-      const cfg = baseConfig();
       if (action === 'launch') {
         if (!value) throw new Error('launch needs value = package name.');
         gate('launch', value, {});
@@ -185,9 +183,9 @@ export function createServer(): McpServer {
           criteria[e.ref] = `${e.cls} "${(e.text || e.desc).slice(0, 60)}"`;
         }
         criteria['none'] = 'not on this screen';
-        const r = await evaluate(screenState(screen), {
+        const r = await decide(screenState(screen), {
           ground: { type: 'choice', instructions: intent, criteria } as any,
-        }, { baseUrl: cfg.jevBaseUrl, model: cfg.jevModel, apiKey: jevKey() });
+        }, { apiKey: deciderKey() });
         const a = choiceOf(r.answers, 'ground');
         if (a.choice === 'none') throw new Error(`Uncertain target for "${intent}" (best=${a.choice} p=${a.confidence.toFixed(2)}).`);
         el = byRef(screen, a.choice);

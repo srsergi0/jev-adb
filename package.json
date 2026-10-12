@@ -46,6 +46,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
+    "@openrouter/sdk": "^1.4.25",
     "zod": "^4.6.5"
   },
   "devDependencies": {

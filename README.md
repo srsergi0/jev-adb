@@ -50,9 +50,24 @@ environment variables.
   - Linux: `sudo apt install android-tools-adb`
 - Android 5.0+ with **USB debugging** on (USB), or **Wireless debugging**
   (Android 11+)
-- A JEV key: `JEV_ADB_API_KEY` / `OPENROUTER_API_KEY`, or an existing
+- A decision key: `JEV_ADB_API_KEY` / `OPENROUTER_API_KEY`, or an existing
   [jev-browser](https://github.com/legostin/jev-mcp) config on the same machine
   (key is reused, never copied). Config/consent state honors `XDG_CONFIG_HOME`.
+
+## Decision model
+
+jev-adb asks narrow typed questions (yes/no, choice, score) and lets code own
+the workflow. Two backends behind one interface:
+
+| Backend | Model | Cost | Select |
+| ------- | ----- | ---- | ------ |
+| **mercury** (default) | `inception/mercury-decide:free` via the OpenRouter SDK | $0 | default, or `JEV_ADB_DECIDER=mercury` |
+| jev | `typesafe/jev-1.13` via `/systemone` | $0.042 / M input tokens | `JEV_ADB_DECIDER=jev` |
+
+Override the model with `JEV_ADB_MODEL`. Mercury is free and answers the same
+contract, but its confidence is not calibrated like JEV's — if it asks too
+often (or acts too eagerly), tune `confidenceAsk` per task or switch back to
+JEV.
 
 ## Quick start
 

@@ -84,6 +84,39 @@ describe('portability', () => {
   });
 });
 
+describe('decide (mercury default, jev fallback)', () => {
+  it('selects backend and model from env', async () => {
+    const { deciderName, deciderModel } = await import('../src/decide.ts');
+    delete process.env.JEV_ADB_DECIDER;
+    delete process.env.JEV_ADB_MODEL;
+    assert.equal(deciderName(), 'mercury');
+    assert.equal(deciderModel(), 'inception/mercury-decide:free');
+    process.env.JEV_ADB_DECIDER = 'jev';
+    assert.equal(deciderName(), 'jev');
+    assert.equal(deciderModel(), 'typesafe/jev-1.13');
+    process.env.JEV_ADB_MODEL = 'custom/model:free';
+    assert.equal(deciderModel(), 'custom/model:free');
+    delete process.env.JEV_ADB_DECIDER;
+    delete process.env.JEV_ADB_MODEL;
+  });
+  it('maps mercury answers with missing confidence/probabilities', async () => {
+    const { decide } = await import('../src/decide.ts');
+    const fake = { alpha: { decisions: { create: async () => ({ model: 'm', answers: { g: { type: 'choice', choice: 'p1' } }, usage: {} }) } } };
+    const r = await decide('s', { g: { type: 'choice', instructions: 'x', criteria: { p1: 'a' } } }, { apiKey: 'k', client: fake as any, timeoutMs: 0 });
+    assert.equal((r.answers.g as any).choice, 'p1');
+    assert.equal((r.answers.g as any).confidence, 0);
+    assert.equal(r.usage.costUsd, 0);
+  });
+  it('propagates backend errors', async () => {
+    const { decide } = await import('../src/decide.ts');
+    const fake = { alpha: { decisions: { create: async () => { throw new Error('boom-401'); } } } };
+    await assert.rejects(
+      decide('s', { q: { type: 'noul', instructions: 'x' } }, { apiKey: 'k', client: fake as any, timeoutMs: 0 }),
+      /boom-401/
+    );
+  });
+});
+
 describe('jev client', () => {
   it('posts systemone contract and parses answers', async () => {
     let seen: any = null;

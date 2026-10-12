@@ -1,6 +1,6 @@
 import { dumpXml, pickSerial, shell } from './adb.ts';
 import { baseConfig, loadAuth, resolveJevKey } from './config.ts';
-import { choiceOf, evaluate, noulOf, type JevOpts } from './jev.ts';
+import { choiceOf, decide, noulOf } from './decide.ts';
 import { byRef, parseDump, screenState, type PhoneElement, type PhoneScreen } from './perception.ts';
 import { checkConsent, gate, redact, type SafetyPolicy } from './safety.ts';
 
@@ -39,11 +39,10 @@ async function observe(serial: string): Promise<PhoneScreen> {
   return parseDump(serial, xml);
 }
 
-function jevOpts(): JevOpts {
-  const cfg = baseConfig();
+function deciderKey(): string {
   const apiKey = resolveJevKey();
-  if (!apiKey) throw new Error('No JEV API key. Set JEV_ADB_API_KEY/OPENROUTER_API_KEY or configure jev-browser first.');
-  return { baseUrl: cfg.jevBaseUrl, model: cfg.jevModel, apiKey };
+  if (!apiKey) throw new Error('No decision API key. Set JEV_ADB_API_KEY/OPENROUTER_API_KEY or configure jev-browser first.');
+  return apiKey;
 }
 
 function candidates(elts: PhoneElement[], cap = 40): Record<string, string | null> {
@@ -69,7 +68,7 @@ export async function runTask(goal: string, opts: { serial?: string; policy?: Ta
 
   const serial = await pickSerial(opts.serial, baseConfig().defaultDevice);
   checkConsent(serial, loadAuth().authorizedDevices);
-  const jo = jevOpts();
+  const apiKey = deciderKey();
 
   const steps: TaskStep[] = [];
   let totalCost = 0;
@@ -78,7 +77,7 @@ export async function runTask(goal: string, opts: { serial?: string; policy?: Ta
     const screen = await observe(serial);
     const state = screenState(screen);
 
-    const r = await evaluate(state, {
+    const r = await decide(state, {
       reached: {
         type: 'noul',
         instructions: `Goal: ${goal}. Answer yes only if the goal is visibly achieved on this screen (not a screen where it could still be done).`,
@@ -92,7 +91,7 @@ export async function runTask(goal: string, opts: { serial?: string; policy?: Ta
         instructions: `Goal: ${goal}. Which control advances the goal right now? Prefer the search field for search goals, the item that matches the goal, its submit/OK button, or a permission Allow button when blocked.`,
         criteria: candidates(screen.elements),
       } as any,
-    }, jo);
+    }, { apiKey });
     totalCost += r.usage.costUsd;
 
     if (noulOf(r.answers, 'reached') >= 0.8) {
