@@ -56,9 +56,9 @@ describe('safety', () => {
 
 describe('portability', () => {
   it('ANDROID_ADB_PATH wins over everything', async () => {
-    process.env.ANDROID_ADB_PATH = '/tmp/fake-adb';
+    process.env.ANDROID_ADB_PATH = process.execPath; // any existing file
     const { resolveAdbPath } = await import('../src/config.ts');
-    assert.equal(resolveAdbPath(), '/tmp/fake-adb');
+    assert.equal(resolveAdbPath(), process.execPath);
     delete process.env.ANDROID_ADB_PATH;
   });
   it('missing-adb error tells how to install per OS', async () => {
