@@ -13,8 +13,8 @@ import { checkConsent, gate, redact, type SafetyPolicy } from './safety.ts';
 export interface TaskPolicy extends SafetyPolicy {
   maxSteps?: number;
   budgetUsd?: number;
-  confidenceAct?: number; // act at/above (default 0.85)
-  confidenceAsk?: number; // below this, take best safe guess once, then stop (default 0.55)
+  /** Below this confidence the loop stops instead of guessing (default 0.55). */
+  confidenceAsk?: number;
 }
 
 export interface TaskStep {
@@ -65,7 +65,6 @@ export async function runTask(goal: string, opts: { serial?: string; policy?: Ta
   const policy = opts.policy ?? {};
   const maxSteps = opts.policy?.maxSteps ?? 25;
   const budgetUsd = opts.policy?.budgetUsd ?? 0.25;
-  const actAt = opts.policy?.confidenceAct ?? 0.85;
   const askBelow = opts.policy?.confidenceAsk ?? 0.55;
 
   const serial = await pickSerial(opts.serial, baseConfig().defaultDevice);
@@ -113,11 +112,11 @@ export async function runTask(goal: string, opts: { serial?: string; policy?: Ta
     const before = screen.fingerprint;
     await doTap(serial, el);
     await new Promise((r2) => setTimeout(r2, 1200));
-    const after = (await observe(serial)).fingerprint;
+    const changed = (await observe(serial)).fingerprint !== before;
     steps.push({
       n,
       action: 'tap',
-      detail: redact(`${el.ref} ${el.cls} "${(el.text || el.desc).slice(0, 60)}"`),
+      detail: redact(`${el.ref} ${el.cls} "${(el.text || el.desc).slice(0, 60)}"${changed ? '' : ' (no visible change)'}`),
       confidence: g.confidence,
       costUsd: r.usage.costUsd,
       latencyMs: r.usage.latencyMs,
@@ -125,9 +124,6 @@ export async function runTask(goal: string, opts: { serial?: string; policy?: Ta
     if (totalCost > budgetUsd) {
       return { done: false, reason: `Budget exceeded ($${totalCost.toFixed(4)} > $${budgetUsd}).`, steps, totalCostUsd: totalCost, serial };
     }
-    void before;
-    void after;
-    void actAt;
   }
   return { done: false, reason: `Step limit reached (${maxSteps}).`, steps, totalCostUsd: totalCost, serial };
 }

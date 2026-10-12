@@ -55,7 +55,7 @@ environment variables.
 ## Quick start
 
 ```sh
-git clone https://github.com/your-account/jev-adb.git
+git clone https://github.com/srsergi0/jev-adb.git
 cd jev-adb
 npm install
 node bin/jev-adb.mjs doctor
@@ -65,10 +65,26 @@ Connect the phone, then authorize it (only after the user agrees):
 
 ```sh
 # USB: plug in, accept the RSA prompt on the phone
-# Wireless (Android 11+): Developer options > Wireless debugging >
-#   "Pair device with pairing code" gives host, port and a 6-digit code
 node bin/jev-adb.mjs doctor        # device must show state "device"
 ```
+
+### Wireless debugging (Android 11+)
+
+The phone shows **two different ports** — don't mix them up:
+
+1. On the phone: Settings → System → Developer options → **Wireless
+   debugging** → turn it on (allow on this network).
+2. Tap **Pair device with pairing code**. It shows an IP, a **pairing port**
+   and a 6-digit code (valid a few minutes).
+3. On the computer: `adb pair <ip>:<pairing-port> <code>` — or the
+   `adb_pair_wireless` tool.
+4. Back on the phone's Wireless debugging screen, read the **connection
+   IP:port** (different port, often 5555 or a 5-digit one) and connect:
+   `adb connect <ip>:<connection-port>` — or the `adb_connect` tool.
+5. Authorize control: the `adb_authorize` tool, only after the user agrees.
+
+Both PC and phone must be on the **same Wi-Fi** (some guest networks block
+device-to-device traffic).
 
 Register the MCP server (any client runs `node <repo>/bin/jev-adb.mjs mcp`
 over stdio):
@@ -132,6 +148,18 @@ agent ──stdio──▶ jev-adb mcp
 Each task step: dump UI → one batched JEV call (goal reached? blocked?
 which control?) → safety gate → tap → re-dump. Secrets are masked at parse
 time; every step, confidence and cost are reported.
+
+## Troubleshooting
+
+| Symptom | Fix |
+| ------- | --- |
+| `Blocked by auto blocker` (Samsung) when enabling debugging | Settings → Security and privacy → **Auto Blocker → off**, then retry. Re-enable it afterwards if you like. |
+| `adb pair` says the code is wrong | Codes expire in minutes — generate a fresh one; make sure you use the **pairing** port for `pair` and the **connection** port for `connect`. |
+| Device shows `unauthorized` | Accept the RSA prompt on the phone; tick "always allow". If it never appears: `adb kill-server`, unplug/reconnect, or revoke old authorizations (Developer options → Revoke USB debugging authorizations). |
+| `No Android device is attached` over Wi-Fi | Same Wi-Fi on both, no client isolation; some routers block it — try USB once, then `adb tcpip 5555` + `adb connect <ip>:5555`. |
+| Empty screen model on banking/DRM apps | Apps with `FLAG_SECURE` block dumps and screenshots — expected, not a bug. |
+| Task taps the wrong row | Rows look alike to the model; prefer `phone_find` first or act by coordinates via `phone_shell "input tap x y"`. Site memory per app is on the roadmap. |
+| Screen locks mid-task | jev-adb never unlocks your phone. Wake it and unlock; tasks continue on the next run. |
 
 ## Development
 

@@ -1,8 +1,7 @@
 import { execFile } from 'node:child_process';
-import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
 import { resolveAdbPath } from './config.ts';
 
 /** Thin, auditable wrapper over the adb binary. Every invocation is explicit. */
@@ -107,16 +106,4 @@ export async function dumpXml(serial: string): Promise<string> {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
-}
-
-export function writeTempPng(png: Buffer): string {
-  const dir = mkdtempSync(join(tmpdir(), 'jev-adb-'));
-  const f = join(dir, 'screen.png');
-  writeFileSync(f, png);
-  return f;
-}
-
-export function adbAvailable(): boolean {
-  const b = adbBin();
-  return b !== 'adb' ? existsSync(b) : true; // 'adb' relies on PATH; exec surfaces the error
 }

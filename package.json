@@ -15,17 +15,24 @@
     "openrouter",
     "wireless-debugging"
   ],
-  "homepage": "https://github.com/your-account/jev-adb#readme",
+  "homepage": "https://github.com/srsergi0/jev-adb#readme",
   "bugs": {
-    "url": "https://github.com/your-account/jev-adb/issues"
+    "url": "https://github.com/srsergi0/jev-adb/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-account/jev-adb.git"
+    "url": "git+https://github.com/srsergi0/jev-adb.git"
   },
   "license": "MIT",
   "type": "module",
-  "private": true,
+  "files": [
+    "bin/",
+    "src/",
+    "test/",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md"
+  ],
   "bin": {
     "jev-adb": "bin/jev-adb.mjs"
   },
@@ -34,7 +41,8 @@
   },
   "scripts": {
     "test": "node --test \"test/*.test.ts\"",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run typecheck && npm test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
