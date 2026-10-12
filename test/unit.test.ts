@@ -66,11 +66,21 @@ describe('portability', () => {
     const hint = missingAdbHint();
     assert.ok(hint.includes(process.platform === 'win32' ? 'winget' : process.platform === 'darwin' ? 'brew' : 'apt'));
   });
-  it('base config carries no machine-specific paths', async () => {
+  it('candidates derive from env/home, nothing hardcoded', async () => {
     const { baseConfig } = await import('../src/config.ts');
+    const { homedir } = await import('node:os');
+    const roots = [
+      process.env.ANDROID_ADB_PATH,
+      process.env.ANDROID_HOME,
+      process.env.ANDROID_SDK_ROOT,
+      process.env.LOCALAPPDATA,
+      homedir(),
+    ].filter(Boolean) as string[];
     const cfg = baseConfig();
-    assert.ok(Array.isArray(cfg.adbCandidates));
-    assert.ok(!cfg.adbCandidates.some((c) => c.includes('srsergio')));
+    assert.ok(Array.isArray(cfg.adbCandidates) && cfg.adbCandidates.length > 0);
+    for (const c of cfg.adbCandidates) {
+      assert.ok(roots.some((r) => c.startsWith(r)), `hardcoded path? ${c}`);
+    }
   });
 });
 
