@@ -71,14 +71,24 @@ JEV.
 
 ## Quick start
 
+### 1. Free OpenRouter key (required)
+
+Nothing prompts for it — without a key every decision fails with "No decision
+API key". The default model is **free**, so the key needs **no credits**:
+
+1. Create an account at [openrouter.ai](https://openrouter.ai/) and generate a
+   key at [openrouter.ai/keys](https://openrouter.ai/settings/keys).
+2. Expose it as `OPENROUTER_API_KEY` (or `JEV_ADB_API_KEY`) — see the client
+   examples below. Verify with `adb_doctor` (must say `key: configured`).
+
 ```sh
 git clone https://github.com/srsergi0/jev-adb.git
 cd jev-adb
 npm install
-node bin/jev-adb.mjs doctor
+OPENROUTER_API_KEY=sk-or-v1-... node bin/jev-adb.mjs doctor
 ```
 
-Connect the phone, then authorize it (only after the user agrees):
+### 2. Connect the phone, then authorize it (only after the user agrees):
 
 ```sh
 # USB: plug in, accept the RSA prompt on the phone
@@ -104,16 +114,19 @@ Both PC and phone must be on the **same Wi-Fi** (some guest networks block
 device-to-device traffic).
 
 Register the MCP server (any client runs `node <repo>/bin/jev-adb.mjs mcp`
-over stdio):
+over stdio). Pass the key via environment — examples:
 
 ```sh
 # OpenCode
-opencode mcp add jev-adb --global -- node /path/to/jev-adb/bin/jev-adb.mjs mcp
+opencode mcp add jev-adb --global --env OPENROUTER_API_KEY=sk-or-v1-... -- node /path/to/jev-adb/bin/jev-adb.mjs mcp
 # Claude Code
-claude mcp add -s user jev-adb -- node /path/to/jev-adb/bin/jev-adb.mjs mcp
+claude mcp add -s user jev-adb --env OPENROUTER_API_KEY=sk-or-v1-... -- node /path/to/jev-adb/bin/jev-adb.mjs mcp
 # Cursor ~/.cursor/mcp.json, Gemini ~/.gemini/settings.json, VS Code mcp.json:
-{ "mcpServers": { "jev-adb": { "command": "node", "args": ["/path/to/jev-adb/bin/jev-adb.mjs", "mcp"] } } }
-# Codex ~/.codex/config.toml:
+{ "mcpServers": { "jev-adb": {
+  "command": "node", "args": ["/path/to/jev-adb/bin/jev-adb.mjs", "mcp"],
+  "env": { "OPENROUTER_API_KEY": "sk-or-v1-..." } } } }
+# Codex ~/.codex/config.toml has no env support — export the key first:
+#   export OPENROUTER_API_KEY=sk-or-v1-...  (or setx on Windows)
 [mcp_servers.jev-adb]
 command = "node"
 args = ["/path/to/jev-adb/bin/jev-adb.mjs", "mcp"]
