@@ -1,0 +1,47 @@
+{
+  "name": "jev-adb",
+  "version": "0.1.0",
+  "description": "MCP server that controls an Android phone over ADB (USB or wireless) with JEV, TypeSafe's fast System One decision model: calibrated confidence, typed phone understanding, explicit user consent and safety gates.",
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "android",
+    "adb",
+    "uiautomator",
+    "browser-automation",
+    "jev",
+    "typesafe",
+    "system-one",
+    "openrouter",
+    "wireless-debugging"
+  ],
+  "homepage": "https://github.com/your-account/jev-adb#readme",
+  "bugs": {
+    "url": "https://github.com/your-account/jev-adb/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-account/jev-adb.git"
+  },
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "jev-adb": "bin/jev-adb.mjs"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}
