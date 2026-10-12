@@ -54,6 +54,26 @@ describe('safety', () => {
   });
 });
 
+describe('portability', () => {
+  it('ANDROID_ADB_PATH wins over everything', async () => {
+    process.env.ANDROID_ADB_PATH = '/tmp/fake-adb';
+    const { resolveAdbPath } = await import('../src/config.ts');
+    assert.equal(resolveAdbPath(), '/tmp/fake-adb');
+    delete process.env.ANDROID_ADB_PATH;
+  });
+  it('missing-adb error tells how to install per OS', async () => {
+    const { missingAdbHint } = await import('../src/adb.ts');
+    const hint = missingAdbHint();
+    assert.ok(hint.includes(process.platform === 'win32' ? 'winget' : process.platform === 'darwin' ? 'brew' : 'apt'));
+  });
+  it('base config carries no machine-specific paths', async () => {
+    const { baseConfig } = await import('../src/config.ts');
+    const cfg = baseConfig();
+    assert.ok(Array.isArray(cfg.adbCandidates));
+    assert.ok(!cfg.adbCandidates.some((c) => c.includes('srsergio')));
+  });
+});
+
 describe('jev client', () => {
   it('posts systemone contract and parses answers', async () => {
     let seen: any = null;

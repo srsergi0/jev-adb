@@ -35,14 +35,22 @@ fingers.
 
 ## Requirements
 
-- Node.js ≥ 22.18
-- ADB (Android Debug Bridge): in `PATH`, `ANDROID_HOME`, or
-  `~/adb/platform-tools` — run `jev-adb doctor` to check
+Works on **Windows 10+, macOS 12+ and Linux (x64/arm64)** with Node.js ≥ 22.18.
+No machine-specific setup: everything resolves from `PATH` and standard
+environment variables.
+
+- **ADB** (Android Debug Bridge), found in this order: `ANDROID_ADB_PATH` →
+  `ANDROID_HOME` / `ANDROID_SDK_ROOT` → OS-standard SDK locations
+  (`%LOCALAPPDATA%\Android\Sdk`, `~/Library/Android/Sdk`, `~/Android/Sdk`) →
+  `PATH`. Install it with:
+  - Windows: `winget install Google.PlatformTools`
+  - macOS: `brew install android-platform-tools`
+  - Linux: `sudo apt install android-tools-adb`
 - Android 5.0+ with **USB debugging** on (USB), or **Wireless debugging**
   (Android 11+)
 - A JEV key: `JEV_ADB_API_KEY` / `OPENROUTER_API_KEY`, or an existing
   [jev-browser](https://github.com/legostin/jev-mcp) config on the same machine
-  (key is reused, never copied)
+  (key is reused, never copied). Config/consent state honors `XDG_CONFIG_HOME`.
 
 ## Quick start
 
@@ -78,9 +86,9 @@ command = "node"
 args = ["/path/to/jev-adb/bin/jev-adb.mjs", "mcp"]
 ```
 
-Windows note: if the console breaks on emoji output, launch with
-`PYTHONUTF8=1`… (not needed here — this project prints no emoji; set
-`set PYTHONIOENCODING=utf-8` only if you hit encoding errors).
+Device text (including emoji from apps) travels over MCP as UTF-8; the CLI
+itself only prints plain ASCII, so no console-encoding setup is needed on any
+OS.
 
 ## MCP tools
 

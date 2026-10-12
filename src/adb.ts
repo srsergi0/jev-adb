@@ -17,12 +17,30 @@ function adbBin(): string {
   return resolveAdbPath();
 }
 
+export function missingAdbHint(): string {
+  const perOs =
+    process.platform === 'win32'
+      ? 'winget install Google.PlatformTools  (or: choco install adb)'
+      : process.platform === 'darwin'
+        ? 'brew install android-platform-tools'
+        : 'sudo apt install android-tools-adb  (or your distro equivalent)';
+  return `ADB not found. Install the Android platform tools and retry: ${perOs}. ` +
+    `Alternatively set ANDROID_ADB_PATH or ANDROID_HOME.`;
+}
+
+function spawnOpts(timeoutMs: number): Record<string, unknown> {
+  const o: Record<string, unknown> = { timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024 };
+  if (process.platform === 'win32') o.windowsHide = true;
+  return o;
+}
+
 export function runAdb(args: string[], opts: { timeoutMs?: number } = {}): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
-    execFile(adbBin(), args, { timeout: opts.timeoutMs ?? 30_000, maxBuffer: 64 * 1024 * 1024, windowsHide: true }, (err, stdout, stderr) => {
+    execFile(adbBin(), args, spawnOpts(opts.timeoutMs ?? 30_000), (err, stdout, stderr) => {
       if (err) {
         const e = err as any;
-        reject(new Error(`adb ${args.join(' ')} failed: ${String(e.message ?? e).split('\n')[0]}${stderr ? ` | ${String(stderr).slice(0, 300)}` : ''}`));
+        const missing = e.code === 'ENOENT' ? ` ${missingAdbHint()}` : '';
+        reject(new Error(`adb ${args.join(' ')} failed: ${String(e.message ?? e).split('\n')[0]}${stderr ? ` | ${String(stderr).slice(0, 300)}` : ''}.${missing}`));
         return;
       }
       resolve({ stdout: String(stdout), stderr: String(stderr) });
@@ -32,8 +50,12 @@ export function runAdb(args: string[], opts: { timeoutMs?: number } = {}): Promi
 
 export function runAdbBinary(args: string[], opts: { timeoutMs?: number } = {}): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    execFile(adbBin(), args, { timeout: opts.timeoutMs ?? 30_000, maxBuffer: 64 * 1024 * 1024, encoding: 'buffer', windowsHide: true } as any, (err, stdout) => {
-      if (err) return reject(new Error(`adb ${args.join(' ')} failed: ${(err as Error).message}`));
+    execFile(adbBin(), args, { ...spawnOpts(opts.timeoutMs ?? 30_000), encoding: 'buffer' } as any, (err, stdout) => {
+      if (err) {
+        const e = err as any;
+        const missing = e.code === 'ENOENT' ? ` ${missingAdbHint()}` : '';
+        return reject(new Error(`adb ${args.join(' ')} failed: ${(err as Error).message}.${missing}`));
+      }
       resolve(stdout as Buffer);
     });
   });

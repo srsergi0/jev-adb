@@ -21,17 +21,30 @@ export interface AdbConfig {
   defaultDevice: string | null;
 }
 
-const DIR = join(homedir(), '.config', 'jev-adb');
+const DIR = process.env.XDG_CONFIG_HOME
+  ? join(process.env.XDG_CONFIG_HOME, 'jev-adb')
+  : join(homedir(), '.config', 'jev-adb');
 const AUTH_FILE = join(DIR, 'authorized.json');
+
+/** Well-known SDK locations per OS (PATH and env vars always win). */
+function sdkRoots(): string[] {
+  const roots: string[] = [];
+  if (process.env.ANDROID_HOME) roots.push(process.env.ANDROID_HOME);
+  if (process.env.ANDROID_SDK_ROOT) roots.push(process.env.ANDROID_SDK_ROOT);
+  const h = homedir();
+  if (process.platform === 'darwin') roots.push(join(h, 'Library', 'Android', 'sdk'));
+  else if (process.platform === 'win32') {
+    if (process.env.LOCALAPPDATA) roots.push(join(process.env.LOCALAPPDATA, 'Android', 'Sdk'));
+  } else roots.push(join(h, 'Android', 'Sdk'));
+  return roots;
+}
 
 function adbFromEnv(): string[] {
   const out: string[] = [];
   if (process.env.ANDROID_ADB_PATH) out.push(process.env.ANDROID_ADB_PATH);
-  if (process.env.ANDROID_HOME) out.push(join(process.env.ANDROID_HOME, 'platform-tools', 'adb.exe'));
-  if (process.env.ANDROID_HOME) out.push(join(process.env.ANDROID_HOME, 'platform-tools', 'adb'));
-  if (process.env.ANDROID_SDK_ROOT) out.push(join(process.env.ANDROID_SDK_ROOT, 'platform-tools', 'adb.exe'));
-  // Common Windows install location (kept for convenience, PATH is preferred).
-  out.push(join(homedir(), 'adb', 'platform-tools', 'adb.exe'));
+  for (const root of sdkRoots()) {
+    out.push(join(root, 'platform-tools', process.platform === 'win32' ? 'adb.exe' : 'adb'));
+  }
   return out;
 }
 
@@ -45,7 +58,8 @@ export function resolveJevKey(): string | null {
   if (process.env.JEV_ADB_API_KEY) return process.env.JEV_ADB_API_KEY;
   if (process.env.OPENROUTER_API_KEY) return process.env.OPENROUTER_API_KEY;
   try {
-    const f = join(homedir(), '.config', 'jev-browser', 'config.json');
+    const base = process.env.XDG_CONFIG_HOME ?? join(homedir(), '.config');
+    const f = join(base, 'jev-browser', 'config.json');
     if (!existsSync(f)) return null;
     const cfg = JSON.parse(readFileSync(f, 'utf8')) as any;
     const provider = cfg.provider ?? 'openrouter';
